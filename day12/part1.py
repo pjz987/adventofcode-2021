@@ -10,15 +10,21 @@ b-d
 A-end
 b-end""".split('\n')
 
+class BlockedError(Exception):
+    ...
 class Cave:
     def __init__(self, name):
         self.blocked = False
         self.name = name
+
         if name in ['start', 'end']:
             self.type = name
-        if name.isupper(): self.type = 'big'
-        if name.islower():
+        elif name.isupper():
+            self.type = 'big'
+        elif name.islower():
             self.type = 'small'
+
+        self.connection_index = 0
         
         self.connections = []
     
@@ -28,11 +34,30 @@ class Cave:
                 cave = connection.cave1 if connection.cave2 is self else connection.cave2
                 self.connections.append(cave)
     
+    def make_path(self, path):
+        if self.blocked:
+            raise BlockedError
+        self.block_check()
+
+        if self.type == 'end':
+            return path
+        try:
+            path.append(self.connections[self.connection_index])
+        except IndexError:
+            return path
+        try:
+            return self.connections[self.connection_index].make_path(path)
+        except BlockedError:
+            path.pop()
+            self.connection_index += 1
+            return path
+    
     def block_check(self):
-        if self.type == 'small':
+        if self.type in ('small', 'start'):
             self.blocked = True
 
     def reset(self):
+        # self.connection_index = 0
         self.blocked = False
     
     def __str__(self):
@@ -74,6 +99,10 @@ class Path:
     def __str__(self):
         return ','.join(map(lambda cave: str(cave), self.path))
 
+def unblock(caves):
+    for cave in caves:
+        cave.reset()
+
 caves = set()
 for connection in connections:
     [caves.add(cave) for cave in connection.split('-')]
@@ -96,24 +125,20 @@ for connection in string_connections:
 for cave in caves:
     cave.set_connections(connections)
 
-# for cave in caves:
-#     print()
-#     print(cave)
-#     for connection in cave.connections:
-#         print(connection)
-
-start = None
-# end = None
 for cave in caves:
-    if cave.name == 'start': start = cave
-    # if cave.name == 'end': end = cave
+    # print(cave.name)
+    if cave.type == 'start':
+        start = cave
+paths = []
+for _ in range(10):
+    path = [start]
+    paths.append(start.make_path(path))
+    print(paths)
+    print(len(path))
+    unblock(caves)
+print(len(paths))
 
-path = Path(start)
-while True:
-    print(path)
-    path.move()
-    if path.check_end():
-        break
-
-print(path)
-
+for path in paths:
+    print('*'*40)
+    print(len(path))
+    print(','.join([str(cave) for cave in path]))
