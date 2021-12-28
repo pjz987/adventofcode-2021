@@ -26,6 +26,8 @@ for cave in caves_set:
 
 paths = []
 
+print(caves)
+
 def make_paths(path=['start'], i=0):
     global caves
     global paths
